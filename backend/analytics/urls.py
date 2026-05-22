@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import TaskStatisticsView
+from .views import UnwrappedAnalyticsView
 
 urlpatterns = [
-    path('stats/', TaskStatisticsView.as_view(), name='task_stats'),
+    path('tasks/stats/', UnwrappedAnalyticsView.as_view(), name='task-stats'),
 ]

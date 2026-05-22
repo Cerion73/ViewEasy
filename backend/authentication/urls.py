@@ -1,5 +1,5 @@
 from django.urls import path, include
-from .views import GoogleLogin, TOTPSetupView, TOTPVerifyView
+from .views import GoogleLogin, TOTPSetupView, TOTPVerifyView, WSTicketView
 
 urlpatterns = [
     # dj-rest-auth standard endpoints (login, logout, user details, password reset)
@@ -14,4 +14,7 @@ urlpatterns = [
     # 2FA endpoints
     path('2fa/setup/', TOTPSetupView.as_view(), name='totp_setup'),
     path('2fa/verify/', TOTPVerifyView.as_view(), name='totp_verify'),
+    
+    # WebSocket Auth Ticket
+    path('ws-ticket/', WSTicketView.as_view(), name='ws_ticket'),
 ]

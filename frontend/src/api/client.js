@@ -16,7 +16,14 @@ export const apiClient = async (endpoint, { body, ...customConfig } = {}) => {
   };
 
   if (body) {
-    config.body = JSON.stringify(body);
+    if (body instanceof FormData) {
+      config.body = body;
+      delete config.headers['Content-Type'];
+    } else if (typeof body === 'string') {
+      config.body = body;
+    } else {
+      config.body = JSON.stringify(body);
+    }
   }
 
   // Helper to extract CSRF token from cookies

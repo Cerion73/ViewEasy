@@ -10,6 +10,11 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [verifyPassword, setVerifyPassword] = useState('');
+  const [pendingGoogleToken, setPendingGoogleToken] = useState(null);
+
   const { login, loginWithToken } = useAuth();
   const navigate = useNavigate();
 
@@ -34,11 +39,31 @@ const Login = () => {
           await loginWithToken();
           navigate('/dashboard');
       } catch (err) {
-          setError('Google authentication failed.');
+          if (err.message && err.message.includes('requires_password_verification')) {
+              setPendingGoogleToken(tokenResponse.access_token);
+              setShowPasswordModal(true);
+          } else {
+              setError('Google authentication failed.');
+          }
       }
     },
     onError: () => setError('Google Login Failed')
   });
+
+  const handleVerifyGooglePassword = async (e) => {
+      e.preventDefault();
+      setError('');
+      try {
+          await apiClient('/auth/google/', {
+              body: { access_token: pendingGoogleToken, password: verifyPassword }
+          });
+          setShowPasswordModal(false);
+          await loginWithToken();
+          navigate('/dashboard');
+      } catch (err) {
+          setError('Invalid password. Please try again.');
+      }
+  };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}>
@@ -86,6 +111,42 @@ const Login = () => {
           Don't have an account? <Link to="/register" style={{ fontWeight: '500' }}>Sign Up</Link>
         </p>
       </div>
+
+      {/* Password Verification Modal */}
+      {showPasswordModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0' }}>Verify Password</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+              An account with this email already exists. Please enter your ViewEasy password to securely link your Google account.
+            </p>
+            {error && (
+              <div style={{ backgroundColor: 'var(--danger)', color: 'white', padding: '0.5rem', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleVerifyGooglePassword}>
+              <input 
+                type="password" 
+                className="input-field" 
+                value={verifyPassword} 
+                onChange={e => setVerifyPassword(e.target.value)} 
+                placeholder="Your ViewEasy Password" 
+                required 
+                style={{ width: '100%', marginBottom: '1rem' }} 
+              />
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button type="button" onClick={() => { setShowPasswordModal(false); setError(''); }} className="btn-secondary" style={{ flex: 1 }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" style={{ flex: 1 }}>
+                  Verify & Link
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
