@@ -1,11 +1,23 @@
+import os
 from rest_framework import viewsets, mixins, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.exceptions import ValidationError
 from django.utils import timezone
 from .models import TeamRoom, RoomChat, RoomChatFile
 from .serializers import TeamRoomSerializer, RoomChatSerializer
+
+ALLOWED_UPLOAD_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.mp3', '.wav', '.ogg', '.m4a', '.webm', '.pdf', '.doc', '.docx', '.txt', '.zip'}
+MAX_UPLOAD_SIZE = 20 * 1024 * 1024
+
+def validate_uploaded_file(f):
+    ext = os.path.splitext(f.name)[1].lower()
+    if ext not in ALLOWED_UPLOAD_EXTENSIONS:
+        raise ValidationError(f'File type "{ext}" is not allowed.')
+    if f.size > MAX_UPLOAD_SIZE:
+        raise ValidationError('File must be under 20MB.')
 
 class TeamRoomViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TeamRoomSerializer
@@ -45,6 +57,7 @@ class RoomChatViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.D
         # Handle uploaded files
         files = self.request.FILES.getlist('uploaded_files')
         for f in files:
+            validate_uploaded_file(f)
             room_file = RoomChatFile.objects.create(
                 file=f,
                 file_name=f.name,

@@ -74,11 +74,12 @@ const Messages = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const connectWebSocket = () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return;
-    ws.current = new WebSocket(`ws://127.0.0.1:8000/ws/dm/?ticket=${token}`);
-    ws.current.onmessage = (event) => {
+  const connectWebSocket = async () => {
+    try {
+      const res = await apiClient('/auth/ws-ticket/');
+      if (!res.ticket) return;
+      ws.current = new WebSocket(`ws://127.0.0.1:8000/ws/dm/?ticket=${res.ticket}`);
+      ws.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'new_message') {
         if (activeConversation && data.message.conversation === activeConversation.id) {
@@ -96,6 +97,9 @@ const Messages = () => {
         }
       }
     };
+    } catch (err) {
+      console.error("Failed to connect WebSocket", err);
+    }
   };
 
   const fetchConversations = async () => {

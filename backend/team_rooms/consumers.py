@@ -1,5 +1,23 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from django.contrib.auth import get_user_model
+from tasks.models import Team, TeamMembership
+
+User = get_user_model()
+
+@database_sync_to_async
+def get_team_for_room(room_id):
+    from .models import TeamRoom
+    try:
+        room = TeamRoom.objects.get(id=room_id)
+        return room.team
+    except TeamRoom.DoesNotExist:
+        return None
+
+@database_sync_to_async
+def is_team_member(user, team):
+    return TeamMembership.objects.filter(team=team, user=user).exists()
 
 class RoomConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -10,8 +28,12 @@ class RoomConsumer(AsyncWebsocketConsumer):
         if user.is_anonymous:
             await self.close()
             return
-            
-        # Optional: Verify user is in the team
+
+        team = await get_team_for_room(self.room_id)
+        if not team or not await is_team_member(user, team):
+            await self.close()
+            return
+
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 

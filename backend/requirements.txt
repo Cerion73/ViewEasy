@@ -11,3 +11,5 @@ django-allauth>=0.61.0
 django-simple-history>=3.4.0
 python-dotenv>=1.0.0
 Pillow>=10.2.0
+channels>=4.0.0
+channels_redis>=4.2.0

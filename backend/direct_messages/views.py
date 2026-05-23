@@ -1,12 +1,17 @@
+import os
 from rest_framework import viewsets, mixins, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.exceptions import ValidationError
 from django.db.models import Count
 from django.utils import timezone
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
+
+ALLOWED_MEDIA_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.mp3', '.wav', '.ogg', '.m4a', '.webm', '.pdf', '.doc', '.docx', '.txt'}
+MAX_MEDIA_SIZE = 20 * 1024 * 1024
 
 class ConversationViewSet(viewsets.ModelViewSet):
     serializer_class = ConversationSerializer
@@ -62,8 +67,15 @@ class MessageViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.De
     def perform_create(self, serializer):
         conv = serializer.validated_data['conversation']
         if self.request.user not in conv.participants.all():
-            from rest_framework.exceptions import ValidationError
             raise ValidationError("Not a participant in this conversation.")
+        
+        media_file = self.request.FILES.get('media')
+        if media_file:
+            ext = os.path.splitext(media_file.name)[1].lower()
+            if ext not in ALLOWED_MEDIA_EXTENSIONS:
+                raise ValidationError(f'File type "{ext}" is not allowed.')
+            if media_file.size > MAX_MEDIA_SIZE:
+                raise ValidationError('File must be under 20MB.')
         
         serializer.save(sender=self.request.user)
         conv.updated_at = timezone.now()
