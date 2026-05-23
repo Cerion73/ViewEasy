@@ -3,12 +3,15 @@ import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../api/client';
 import Navigation from '../components/Navigation';
 import { Smile, Paperclip, Image, Mic, X, Download } from 'lucide-react';
+import { AppleEmoji, renderContentWithEmojis, insertHTMLAtCursor, convertHTMLToTextWithEmojis } from '../utils/emoji';
 
-const EMOJI_LIST = ['😀','😂','😍','🥰','😎','🤔','👍','👎','❤️','🔥','🎉','✅','💯','🙏','😢','😡','🤣','😊','🥳','💪','👏','🙌','😴','🤝','⭐','💡','📌','🚀','🎯','✨'];
+// Common emojis for picker (matching comrade implementation)
+// Common emojis for picker (matching comrade implementation)
+const COMMON_EMOJIS = ['😀', '😂', '🥰', '😍', '🤔', '😢', '😡', '🔥', '❤️', '👍', '👎', '🎉', '💯', '✨', '🙏', '👀', '💬', '🙂', '😎', '🤝'];
 
 const EmojiPicker = ({ onSelect }) => (
   <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: '8px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '4px', zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
-    {EMOJI_LIST.map(e => (
+    {COMMON_EMOJIS.map(e => (
       <button key={e} onClick={() => onSelect(e)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', padding: '4px', borderRadius: '6px', transition: 'background 0.15s' }}
         onMouseOver={ev => ev.currentTarget.style.background = 'var(--border-color)'}
         onMouseOut={ev => ev.currentTarget.style.background = 'none'}
@@ -99,9 +102,14 @@ const Messages = () => {
     try { const res = await apiClient('/dm/conversations/'); setConversations(res.results || res); } catch (err) { console.error(err); }
   };
 
-  const fetchMessages = async (id) => {
-    try { const res = await apiClient(`/dm/conversations/${id}/messages/`); setMessages((res.results || res).reverse()); } catch (err) { console.error(err); }
-  };
+    const fetchMessages = async (id) => {
+      try { 
+        const res = await apiClient(`/dm/conversations/${id}/messages/`); 
+        // Messages should be in chronological order (oldest first)
+        // Remove the .reverse() call that was putting newest at the top
+        setMessages(res.results || res); 
+      } catch (err) { console.error(err); }
+    };
 
   const searchUsers = async () => {
     if (!searchEmail) return;
@@ -173,7 +181,21 @@ const Messages = () => {
     setIsRecording(false);
   };
 
-  const insertEmoji = (emoji) => { setInputText(prev => prev + emoji); setShowEmoji(false); };
+   const insertEmoji = (emoji) => {
+     // Insert emoji at cursor position in the textarea
+     const input = document.querySelector('input[placeholder="Type a message..."]');
+     if (input) {
+       const start = input.selectionStart;
+       const end = input.selectionEnd;
+       const text = input.value;
+       input.value = text.substring(0, start) + emoji + text.substring(end);
+       input.selectionStart = input.selectionEnd = start + emoji.length;
+       input.focus();
+     } else {
+       setInputText(prev => prev + emoji);
+     }
+     setShowEmoji(false);
+   };
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
@@ -240,20 +262,20 @@ const Messages = () => {
               </div>
               
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                {messages.map(msg => {
-                  const isMe = msg.sender?.id === user.id;
-                  return (
-                    <div key={msg.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
-                      <div style={{ maxWidth: '70%', padding: '12px 16px', borderRadius: '16px', backgroundColor: isMe ? 'var(--accent-primary)' : 'var(--bg-primary)', color: isMe ? '#fff' : 'var(--text-primary)', borderBottomRightRadius: isMe ? '4px' : '16px', borderBottomLeftRadius: !isMe ? '4px' : '16px', border: isMe ? 'none' : '1px solid var(--border-color)' }}>
-                        {msg.content && <div style={{ lineHeight: '1.5', wordBreak: 'break-word' }}>{msg.content}</div>}
-                        <MediaPreview media={msg.media} isMe={isMe} />
-                        <div style={{ fontSize: '11px', color: isMe ? 'rgba(255,255,255,0.7)' : 'var(--text-secondary)', marginTop: '5px', textAlign: 'right' }}>
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                 {messages.map((msg, index) => {
+                   const isMe = msg.sender?.id === user.id;
+                   return (
+                     <div key={msg.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
+                       <div style={{ maxWidth: '70%', padding: '12px 16px', borderRadius: '16px', backgroundColor: isMe ? 'var(--accent-primary)' : 'var(--bg-primary)', color: isMe ? '#fff' : 'var(--text-primary)', borderBottomRightRadius: isMe ? '4px' : '16px', borderBottomLeftRadius: !isMe ? '4px' : '16px', border: isMe ? 'none' : '1px solid var(--border-color)' }}>
+                         {msg.content && <div style={{ lineHeight: '1.5', wordBreak: 'break-word' }}>{msg.content}</div>}
+                         <MediaPreview media={msg.media} isMe={isMe} />
+                         <div style={{ fontSize: '11px', color: isMe ? 'rgba(255,255,255,0.7)' : 'var(--text-secondary)', marginTop: '5px', textAlign: 'right' }}>
+                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                         </div>
+                       </div>
+                     </div>
+                   );
+                 })}
                 {typingUsers.size > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                     <div style={{ padding: '12px 16px', borderRadius: '16px', backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '13px', border: '1px solid var(--border-color)' }}>

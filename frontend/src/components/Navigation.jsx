@@ -232,19 +232,31 @@ const Navigation = ({ onTaskCreated }) => {
 
         {/* Desktop Actions */}
         <div className="desktop-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          {!activeTeam && (
-            <>
-              <NavLink to="/discover" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', textDecoration: 'none', color: 'var(--text-primary)' }}>
-                <Search size={18} /> Discover
-              </NavLink>
-              <NavLink to="/messages" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', textDecoration: 'none', color: 'var(--text-primary)' }}>
-                <Mail size={18} /> Messages
-              </NavLink>
-              <button onClick={() => setIsTeamsModalOpen(true)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
-                <Users size={18} /> Teams
-              </button>
-            </>
-          )}
+{!activeTeam && (
+              <>
+                <NavLink to="/discover" style={({ isActive }) => ({
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px',
+                  textDecoration: 'none', color: isActive ? 'white' : 'var(--text-primary)',
+                  backgroundColor: isActive ? 'var(--accent-primary)' : 'transparent',
+                  fontWeight: isActive ? '600' : 'normal',
+                  transition: 'all 0.2s'
+                })}>
+                  <Search size={18} /> Discover
+                </NavLink>
+                <NavLink to="/messages" style={({ isActive }) => ({
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '8px',
+                  textDecoration: 'none', color: isActive ? 'white' : 'var(--text-primary)',
+                  backgroundColor: isActive ? 'var(--accent-primary)' : 'transparent',
+                  fontWeight: isActive ? '600' : 'normal',
+                  transition: 'all 0.2s'
+                })}>
+                  <Mail size={18} /> Messages
+                </NavLink>
+                <button onClick={() => setIsTeamsModalOpen(true)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
+                  <Users size={18} /> Teams
+                </button>
+              </>
+            )}
           {activeTeam && (
             <button onClick={() => setIsMembersModalOpen(true)} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
               <Users size={18} /> Members

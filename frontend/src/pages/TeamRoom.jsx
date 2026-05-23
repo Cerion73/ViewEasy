@@ -5,12 +5,14 @@ import { useTeam } from '../context/TeamContext';
 import { apiClient } from '../api/client';
 import Navigation from '../components/Navigation';
 import { Smile, Paperclip, Image, Mic, X, Download } from 'lucide-react';
+import { AppleEmoji, renderContentWithEmojis, insertHTMLAtCursor, convertHTMLToTextWithEmojis } from '../utils/emoji';
 
-const EMOJI_LIST = ['😀','😂','😍','🥰','😎','🤔','👍','👎','❤️','🔥','🎉','✅','💯','🙏','😢','😡','🤣','😊','🥳','💪','👏','🙌','😴','🤝','⭐','💡','📌','🚀','🎯','✨'];
+// Common emojis for picker (matching comrade implementation)
+const COMMON_EMOJIS = ['😀', '😂', '🥰', '😍', '🤔', '😢', '😡', '🔥', '❤️', '👍', '👎', '🎉', '💯', '✨', '🙏', '👀', '💬', '🙂', '😎', '🤝'];
 
 const EmojiPicker = ({ onSelect }) => (
   <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: '8px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px', display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '4px', zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
-    {EMOJI_LIST.map(e => (
+    {COMMON_EMOJIS.map(e => (
       <button key={e} onClick={() => onSelect(e)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', padding: '4px', borderRadius: '6px', transition: 'background 0.15s' }}
         onMouseOver={ev => ev.currentTarget.style.background = 'var(--border-color)'}
         onMouseOut={ev => ev.currentTarget.style.background = 'none'}
@@ -88,12 +90,12 @@ const TeamRoom = () => {
     } catch (err) { console.error(err); }
   };
 
-  const fetchMessages = async (roomId) => {
-    try {
-      const res = await apiClient(`/team-rooms/rooms/${roomId}/chats/`);
-      setMessages((res.results || res).reverse());
-    } catch (err) { console.error(err); }
-  };
+   const fetchMessages = async (roomId) => {
+     try {
+       const res = await apiClient(`/team-rooms/rooms/${roomId}/chats/`);
+       setMessages(res.results || res);
+     } catch (err) { console.error(err); }
+   };
 
   const connectWebSocket = (roomId) => {
     const token = localStorage.getItem('access_token');
@@ -175,7 +177,21 @@ const TeamRoom = () => {
     setIsRecording(false);
   };
 
-  const insertEmoji = (emoji) => { setInputText(prev => prev + emoji); setShowEmoji(false); };
+   const insertEmoji = (emoji) => {
+     // Insert emoji at cursor position in the textarea
+     const input = document.querySelector('input[placeholder={`Message #${team.name}...`}]');
+     if (input) {
+       const start = input.selectionStart;
+       const end = input.selectionEnd;
+       const text = input.value;
+       input.value = text.substring(0, start) + emoji + text.substring(end);
+       input.selectionStart = input.selectionEnd = start + emoji.length;
+       input.focus();
+     } else {
+       setInputText(prev => prev + emoji);
+     }
+     setShowEmoji(false);
+   };
 
   if (!team) return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
